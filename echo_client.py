@@ -4,6 +4,8 @@ from concurrent import futures
 import helloworld_pb2
 import helloworld_pb2_grpc
 
+from cython import nogil
+
 channels = [ 
     grpc.insecure_channel('localhost:27885')
 ]
@@ -13,7 +15,7 @@ stubs = [
 
 
 def run():
-    p = futures.ThreadPoolExecutor(max_workers=50)
+    p = futures.ThreadPoolExecutor(max_workers=500)
     data_set = range(10000, 0, -1)
     p.map(make_req_and_get_response, data_set)
 
@@ -28,4 +30,5 @@ def make_req_and_get_response(i):
 
 
 if __name__ == "__main__":
-    run()
+    with nogil:
+        run()
