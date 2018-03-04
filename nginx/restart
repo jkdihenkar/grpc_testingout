@@ -1,0 +1,2 @@
+nginx -c `pwd`/nginx.conf -s reload
+

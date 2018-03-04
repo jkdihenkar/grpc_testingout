@@ -1,20 +1,22 @@
 from concurrent import futures
 import time
-
+import argparse
 import grpc
-
 from cython import nogil
 import helloworld_pb2
 import helloworld_pb2_grpc
 import logging
 import hashlib
 
-executor = futures.ThreadPoolExecutor(max_workers=50)
+PARALLEL = 50
+executor = futures.ThreadPoolExecutor(max_workers=PARALLEL)
+logging.getLogger().setLevel(logging.INFO)
 
 
 class Greeter(helloworld_pb2_grpc.GreeterServicer):
 
     def sayHello(self, request, context):
+        logging.info("Processing sayHello for %s", request.name)
         return helloworld_pb2.HelloReply(
             message="Hello world .... {} ( Integrity: {})".format(
                 request.name,
@@ -24,9 +26,18 @@ class Greeter(helloworld_pb2_grpc.GreeterServicer):
 
 
 def app():
-    server = grpc.server(executor)
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-p", "--port", default=28001)
+    parser.add_argument("-a", "--address", default="localhost")
+    cmd_args = parser.parse_args()
+
+    server = grpc.server(executor, maximum_concurrent_rpcs=PARALLEL)
     helloworld_pb2_grpc.add_GreeterServicer_to_server(Greeter(), server)
-    server.add_insecure_port('localhost:27885')
+    logging.info("Attempting to listen on %s:%s", cmd_args.address, cmd_args.port)
+    server.add_insecure_port('{}:{}'.format(
+        cmd_args.address, cmd_args.port
+    ))
+
     server.start()
     try:
         while True:
